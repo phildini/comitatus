@@ -1,0 +1,9 @@
+django>=5.0
+markdown
+Pillow
+atproto
+Mastodon.py
+gunicorn
+GitPython
+whitenoise
+requests

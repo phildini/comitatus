@@ -13,7 +13,7 @@ dependencies = [
     "gunicorn",
     "GitPython",
     "whitenoise",
-    "django-admin-interface",
+    "requests",
 ]
 
 [build-system]

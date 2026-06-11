@@ -9,7 +9,7 @@ POSSE personal site platform. Two deploy targets from one repo:
 ## Key commands
 
 ```bash
-python -m venv .venv && source .venv/bin/activate && pip install -e .
+uv venv && source .venv/bin/activate && uv pip install -r requirements.txt
 python manage.py migrate
 python manage.py createsuperuser
 python manage.py runserver
