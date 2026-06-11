@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>phildini.net</title>
+  <link href="https://phildini.net/" rel="alternate"/>
+  <link href="https://phildini.net/feed.xml" rel="self"/>
+  <id>https://phildini.net/</id>
+  <updated>2026-06-11T19:01:28.293867+00:00</updated>
+  <author>
+    <name>Philip James</name>
+    <uri>https://phildini.net/</uri>
+  </author>
+  
+</feed>
