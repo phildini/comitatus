@@ -1,0 +1,24 @@
+[project]
+name = "comitatus"
+version = "0.1.0"
+description = "POSSE personal site platform"
+authors = [{ name = "Philip James", email = "phildini@phildini.net" }]
+requires-python = ">=3.12"
+dependencies = [
+    "django>=5.0",
+    "markdown",
+    "Pillow",
+    "atproto",
+    "Mastodon.py",
+    "gunicorn",
+    "GitPython",
+    "whitenoise",
+    "django-admin-interface",
+]
+
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]

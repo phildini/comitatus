@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>phildini.net</title>
+  <link href="https://{{ site_domain }}/" rel="alternate"/>
+  <link href="https://{{ site_domain }}/feed.xml" rel="self"/>
+  <id>https://{{ site_domain }}/</id>
+  <updated>{{ now|date:"c" }}</updated>
+  <author>
+    <name>Philip James</name>
+    <uri>https://{{ site_domain }}/</uri>
+  </author>
+  {% for post in posts %}
+  <entry>
+    <title>{{ post.title|default:post.body|truncatewords:10 }}</title>
+    <link href="https://{{ site_domain }}/posts/{{ post.uuid }}/" rel="alternate"/>
+    <id>https://{{ site_domain }}/posts/{{ post.uuid }}/</id>
+    <published>{{ post.published_at|date:"c" }}</published>
+    <updated>{{ post.published_at|date:"c" }}</updated>
+    <content type="html">{{ post.body_html }}</content>
+    {% if post.syndication_urls %}
+    {% endif %}
+  </entry>
+  {% endfor %}
+</feed>

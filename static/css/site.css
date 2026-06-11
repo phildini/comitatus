@@ -1,0 +1,57 @@
+:root {
+  --pico-font-family: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+.post-entry {
+  padding-bottom: var(--pico-spacing);
+  margin-bottom: var(--pico-spacing);
+  border-bottom: 1px solid var(--pico-muted-border-color);
+}
+
+.post-entry:last-child {
+  border-bottom: none;
+}
+
+.post-micro img {
+  max-width: 100%;
+  border-radius: var(--pico-border-radius);
+  margin: var(--pico-spacing) 0;
+}
+
+.syndication-links {
+  font-size: 0.875rem;
+}
+
+.syndication-links a {
+  margin-right: 0.5rem;
+}
+
+.post-type-badge {
+  font-size: 0.75rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 3px;
+  background: var(--pico-muted-border-color);
+}
+
+.webmention {
+  padding: var(--pico-spacing);
+  margin-bottom: var(--pico-spacing);
+  background: var(--pico-card-background-color);
+  border-radius: var(--pico-border-radius);
+}
+
+header.container {
+  border-bottom: 1px solid var(--pico-muted-border-color);
+  margin-bottom: var(--pico-spacing);
+}
+
+footer.container {
+  border-top: 1px solid var(--pico-muted-border-color);
+  padding-top: var(--pico-spacing);
+  margin-top: var(--pico-spacing);
+  text-align: center;
+}
+
+hgroup h2 {
+  margin-bottom: 0;
+}

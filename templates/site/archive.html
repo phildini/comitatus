@@ -1,0 +1,23 @@
+{% extends "site/base.html" %}
+{% block title %}Archive &middot; phildini.net{% endblock %}
+{% block content %}
+<h1>Archive</h1>
+
+{% regroup posts by published_at|date:"Y" as year_list %}
+{% for year in year_list %}
+  <h2>{{ year.grouper }}</h2>
+  <ul>
+    {% for post in year.list %}
+      <li>
+        <small>{{ post.published_at|date:"M j" }}</small>
+        {% if post.is_long %}
+          <a href="/posts/{{ post.uuid }}/">{{ post.title }}</a>
+        {% else %}
+          <a href="/posts/{{ post.uuid }}/">{{ post.body|truncatewords:15 }}</a>
+          <small class="post-type-badge micro">micro</small>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+{% endfor %}
+{% endblock %}

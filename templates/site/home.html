@@ -1,0 +1,51 @@
+{% extends "site/base.html" %}
+{% block title %}phildini.net{% endblock %}
+{% block content %}
+<section>
+  <h1>Philip James</h1>
+  <p>
+    I'm a software engineer, writer, and occasional gardener.
+    This is my personal site — mostly micro-posts and occasional
+    long-form writing.
+  </p>
+  <p>
+    <a href="https://bsky.app/profile/{{ site_domain }}">Bluesky</a> &middot;
+    <a href="https://mastodon.social/@phildini">Mastodon</a> &middot;
+    <a href="https://github.com/phildini">GitHub</a>
+  </p>
+</section>
+
+<hr>
+
+<section>
+  {% for post in posts %}
+    <article class="post-entry post-{{ post.post_type }}">
+      {% if post.is_long %}
+        <hgroup>
+          <h2><a href="/posts/{{ post.uuid }}/">{{ post.title }}</a></h2>
+          <p><small>{{ post.published_at_str }}</small></p>
+        </hgroup>
+        <p>{{ post.body_html|truncatewords_html:80|safe }}</p>
+        <p><a href="/posts/{{ post.uuid }}/">Read more &rarr;</a></p>
+      {% else %}
+        <p><small>{{ post.published_at_str }}</small></p>
+        {% if post.image_url %}
+          <img src="{{ post.image_url }}" alt="Post image" loading="lazy">
+        {% endif %}
+        {{ post.body_html|safe }}
+        <p class="syndication-links">
+          {% if post.syndication_urls.bluesky %}
+            <a href="{{ post.syndication_urls.bluesky }}" target="_blank">Bluesky</a>
+          {% endif %}
+          {% if post.syndication_urls.mastodon %}
+            <a href="{{ post.syndication_urls.mastodon }}" target="_blank">Mastodon</a>
+          {% endif %}
+          <a href="/posts/{{ post.uuid }}/">Permalink</a>
+        </p>
+      {% endif %}
+    </article>
+  {% empty %}
+    <p>Nothing published yet. Check back soon!</p>
+  {% endfor %}
+</section>
+{% endblock %}

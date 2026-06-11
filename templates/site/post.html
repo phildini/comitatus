@@ -1,0 +1,64 @@
+{% extends "site/base.html" %}
+{% block title %}{{ post.title|default:"Post" }} &middot; phildini.net{% endblock %}
+{% block extra_head %}
+  <link rel="canonical" href="{{ post.canonical_url }}">
+  <meta property="og:title" content="{{ post.title|default:post.body|truncatewords:20 }}">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="{{ post.canonical_url }}">
+  {% if post.image_url %}
+    <meta property="og:image" content="{{ post.canonical_url }}{{ post.image_url }}">
+  {% endif %}
+{% endblock %}
+{% block content %}
+<article>
+  <header>
+    {% if post.is_long %}
+      <h1>{{ post.title }}</h1>
+    {% endif %}
+    <p><small>{{ post.published_at_str }}</small></p>
+    {% if post.syndication_urls %}
+      <p class="syndication-links">
+        Also on:
+        {% if post.syndication_urls.bluesky %}
+          <a href="{{ post.syndication_urls.bluesky }}" target="_blank">Bluesky</a>
+        {% endif %}
+        {% if post.syndication_urls.mastodon %}
+          <a href="{{ post.syndication_urls.mastodon }}" target="_blank">Mastodon</a>
+        {% endif %}
+      </p>
+    {% endif %}
+  </header>
+
+  {% if post.image_url %}
+    <img src="{{ post.image_url }}" alt="Post image" loading="lazy">
+  {% endif %}
+
+  {{ post.body_html|safe }}
+
+  {% if post.webmentions %}
+    <hr>
+    <section id="webmentions">
+      <h3>Responses</h3>
+      {% for wm in post.webmentions %}
+        <article class="webmention">
+          <p>
+            <strong>
+              {% if wm.author_url %}
+                <a href="{{ wm.author_url }}">{{ wm.author_name }}</a>
+              {% else %}
+                {{ wm.author_name }}
+              {% endif %}
+            </strong>
+            {% if wm.published %}
+              <small>{{ wm.published|date:"Y-m-d" }}</small>
+            {% endif %}
+          </p>
+          {% if wm.content %}
+            <p>{{ wm.content }}</p>
+          {% endif %}
+        </article>
+      {% endfor %}
+    </section>
+  {% endif %}
+</article>
+{% endblock %}

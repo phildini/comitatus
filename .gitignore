@@ -164,8 +164,14 @@ venv.bak/
 # Rope project settings
 .ropeproject
 
-# mkdocs documentation
+# Build output
 /site
+
+# SQLite database
+/data/
+
+# Collected static files
+/staticfiles/
 
 # mypy
 .mypy_cache/
