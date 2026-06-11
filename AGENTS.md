@@ -48,10 +48,21 @@ When a post is saved with `is_published=True`:
 
 `DJANGO_SECRET_KEY`, `SITE_DOMAIN`, `BLUESKY_USERNAME`, `BLUESKY_PASSWORD`, `MASTODON_ACCESS_TOKEN`, `MASTODON_BASE_URL`, `WEBMENTION_IO_TOKEN`, `GITHUB_DEPLOY_KEY`, `GITHUB_REPO_URL`. See `.env.example`.
 
-## Deploy
+## Deploy (Fly.io + GitHub Pages)
 
-- **Django admin**: Fly.io via `Procfile` (`web: gunicorn`, `release: migrate`). SQLite on Fly Volume at `/data`.
-- **Static site**: Django pushes `site/` to `gh-pages` branch via `GITHUB_DEPLOY_KEY`. GitHub Action in `.github/workflows/pages.yml` deploys that branch to Pages.
+| App | Hosting | Method |
+|---|---|---|
+| **Django admin** (`admin.phildini.net`) | Fly.io | `Dockerfile` uses `uv`, entrypoint runs migrate + gunicorn |
+| **Static site** (`phildini.net`) | GitHub Pages | `posts/deploy.py` pushes `site/` to `gh-pages` via `GITHUB_DEPLOY_KEY` |
+
+Fly secrets (`fly secrets set ...`): all env vars in `.env.example` plus `DJANGO_ALLOWED_HOSTS`.
+Fly Volume at `/data` for SQLite persistence.
+
+GitHub Action `.github/workflows/fly-deploy.yml` auto-deploys on push to `main`.
+
+`.github/workflows/fly-deploy.yml` cannot be pushed via HTTPS token (GitHub blocks OAuth workflow edits). Must be pushed from a machine with SSH or PAT with `workflow` scope.
+
+Static site: Django pushes `site/` to `gh-pages` → GitHub Action in `.github/workflows/pages.yml` deploys to Pages.
 
 ## Gotchas
 

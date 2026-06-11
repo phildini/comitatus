@@ -25,118 +25,173 @@ POSSE personal site platform — **P**ublish (on your) **O**wn **S**ite, **S**yn
 ### Prerequisites
 
 - Python 3.12+
-- GitHub account with Pages enabled on the repo
-- Bluesky account
-- Mastodon account
-- (Optional) Fly.io account for hosting the admin app
+- A GitHub account (for repo and Pages)
+- A Bluesky account (for syndication)
+- A Mastodon account (for syndication)
+- A [Fly.io](https://fly.io) account (for hosting the admin app)
+- A domain you control (e.g., `phildini.net`)
 
 ### Local Development
 
 ```bash
-# Clone the repo
-git clone git@github.com:phildini/comitatus.git
-cd comitatus
-
-# Create and activate a virtual environment
-python -m venv .venv
-source .venv/bin/activate
-
-# Install dependencies
-pip install -e .
-
-# Run migrations
+uv venv && source .venv/bin/activate && uv pip install -r requirements.txt
 python manage.py migrate
-
-# Create a superuser
 python manage.py createsuperuser
-
-# Start the dev server
 python manage.py runserver
 ```
 
 Visit `http://localhost:8000/admin/` and log in.
 
-### Environment Variables
+---
 
-Copy `.env.example` to `.env` and fill in the values:
+## Deployment Guide
 
-| Variable | Required | Description |
+### Step 1: GitHub Repo + Pages
+
+1. Push the repo to GitHub
+2. Go to repo Settings → Pages → Source: **Deploy from branch**
+3. Branch: `gh-pages`, folder: `/ (root)`
+4. The `.github/workflows/pages.yml` will deploy on every push to `gh-pages`
+5. Later, set your custom domain in the Pages settings tab (after DNS below)
+
+### Step 2: DNS Setup
+
+These are your two domains — set them up at your DNS provider:
+
+| Record | Type | Value |
 |---|---|---|
-| `DJANGO_SECRET_KEY` | Yes | Django secret key |
-| `DJANGO_DEBUG` | No | Set to `True` for local dev |
-| `DJANGO_ALLOWED_HOSTS` | No | Comma-separated hostnames |
-| `SITE_DOMAIN` | Yes | Your domain (e.g., `phildini.net`) |
-| `BLUESKY_USERNAME` | For syndication | Bluesky handle |
-| `BLUESKY_PASSWORD` | For syndication | Bluesky app password |
-| `MASTODON_ACCESS_TOKEN` | For syndication | Mastodon API token |
-| `MASTODON_BASE_URL` | For syndication | Mastodon instance URL |
-| `WEBMENTION_IO_TOKEN` | For webmentions | webmention.io API token |
-| `GITHUB_DEPLOY_KEY` | For deploy | SSH key with push access to gh-pages |
-| `GITHUB_REPO_URL` | For deploy | Git SSH URL of the repo |
+| `phildini.net` | CNAME | `<your-username>.github.io` |
+| `admin.phildini.net` | CNAME | `comitatus.fly.dev` (get this after `fly launch` below) |
 
-### Deploying the Admin App (Fly.io)
+GitHub Pages will use the `CNAME` file already in the `gh-pages` branch.
+
+### Step 3: Fly.io App Setup
 
 ```bash
-# Install flyctl if you haven't already
+# Install flyctl
 curl -fsSL https://fly.io/install.sh | sh
 
-# Launch the app
-fly launch
+# Log in
+fly auth login
 
-# Set secrets
+# Launch the app (use the existing fly.toml)
+fly launch --no-deploy
+
+# Attach a persistent volume for SQLite
+fly volumes create data --region sjc --size 1
+
+# Set all secrets (see Step 4-7 for where values come from)
 fly secrets set \
-  DJANGO_SECRET_KEY=$(python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())") \
+  DJANGO_SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(50))") \
   SITE_DOMAIN=phildini.net \
-  BLUESKY_USERNAME=... \
-  BLUESKY_PASSWORD=... \
-  MASTODON_ACCESS_TOKEN=... \
-  MASTODON_BASE_URL=... \
-  WEBMENTION_IO_TOKEN=... \
-  GITHUB_DEPLOY_KEY="$(cat ~/.ssh/deploy_key)"
+  DJANGO_ALLOWED_HOSTS=admin.phildini.net,comitatus.fly.dev \
+  BLUESKY_USERNAME=your-handle.bsky.social \
+  BLUESKY_PASSWORD='xxx' \
+  MASTODON_ACCESS_TOKEN='xxx' \
+  MASTODON_BASE_URL=https://mastodon.social \
+  WEBMENTION_IO_TOKEN='xxx' \
+  GITHUB_DEPLOY_KEY='xxx' \
+  GITHUB_REPO_URL=git@github.com:phildini/comitatus.git
 
-# Attach a volume for SQLite persistence
-fly volumes create data --size 1
+# Deploy
 fly deploy
 ```
 
-### Setting Up the GitHub Deploy Key
+After deploy, note the Fly app hostname:
+```bash
+fly status
+# Look for "Hostname: comitatus.fly.dev"
+```
 
-The Django app needs to push to the `gh-pages` branch of the repo.
+### Step 4: GitHub Deploy Key
 
-1. Generate a deploy key:
+The Django admin app needs permission to push the generated static site to the `gh-pages` branch.
+
+```bash
+# Generate a deploy key (on your local machine)
+ssh-keygen -t ed25519 -C "comitatus-deploy" -f ~/.ssh/comitatus_deploy
+```
+
+This creates two files:
+- `~/.ssh/comitatus_deploy` — **private key** (put this in Fly secrets as `GITHUB_DEPLOY_KEY`)
+- `~/.ssh/comitatus_deploy.pub` — **public key** (goes to GitHub)
+
+Add the **public key** to GitHub:
+1. Go to https://github.com/phildini/comitatus/settings/keys
+2. Click **Add deploy key**
+3. Title: `comitatus-deploy`
+4. Key: paste the contents of `~/.ssh/comitatus_deploy.pub`
+5. Check **Allow write access** (required so Django can push to `gh-pages`)
+
+Set the **private key** as a Fly secret (one line, with newlines):
+```bash
+fly secrets set GITHUB_DEPLOY_KEY="$(cat ~/.ssh/comitatus_deploy)"
+```
+
+### Step 5: Bluesky Syndication
+
+1. Log in to Bluesky in a browser
+2. Go to **Settings** → **App Passwords**
+3. Click **Add App Password**
+4. Name it `comitatus`
+5. Copy the generated password (looks like `xxxx-xxxx-xxxx-xxxx`)
+6. Set as Fly secrets:
    ```bash
-   ssh-keygen -t ed25519 -C "comitatus-deploy" -f ~/.ssh/comitatus_deploy
+   fly secrets set BLUESKY_USERNAME=your-handle.bsky.social
+   fly secrets set BLUESKY_PASSWORD='xxxx-xxxx-xxxx-xxxx'
    ```
 
-2. Add the **public key** as a deploy key in your GitHub repo settings:
-   - Settings → Deploy keys → Add deploy key
-   - Allow write access
+Note: Use your full handle (e.g., `phildini.bsky.social`), not just `@phildini`.
 
-3. Set the **private key** as a Fly secret (see above)
+### Step 6: Mastodon Syndication
 
-### Setting Up Social Syndication
+1. Log in to your Mastodon instance (e.g., `mastodon.social`)
+2. Go to **Preferences** → **Development** (URL: `https://mastodon.social/settings/applications`)
+3. Click **New Application**
+4. Application name: `comitatus`
+5. Scopes: enable **`write:statuses`** and **`write:media`** only
+6. Click **Submit**
+7. Copy the **Your access token** string (long random string)
+8. Set as Fly secrets:
+   ```bash
+   fly secrets set MASTODON_ACCESS_TOKEN='your-access-token'
+   fly secrets set MASTODON_BASE_URL=https://mastodon.social
+   ```
 
-#### Bluesky
+### Step 7: Webmentions (Optional)
 
-1. Go to Settings → App Passwords in Bluesky
-2. Create an app password (e.g., "comitatus")
-3. Set `BLUESKY_USERNAME` and `BLUESKY_PASSWORD` as Fly secrets
+1. Go to https://webmention.io and sign in with IndieAuth (your domain)
+2. Add your domain (`phildini.net`)
+3. Copy the API token from the settings page
+4. Set as Fly secret:
+   ```bash
+   fly secrets set WEBMENTION_IO_TOKEN='your-token'
+   ```
 
-#### Mastodon
+The `<link rel="webmention">` tags are already in the site templates. Webmentions are fetched at build time and embedded in post pages.
 
-1. Go to Settings → Development in Mastodon
-2. Create a new application with `write:statuses` and `write:media` scopes
-3. Copy the access token
-4. Set `MASTODON_ACCESS_TOKEN` and `MASTODON_BASE_URL` as Fly secrets
+### Step 8: Deploy
 
-### Setting Up Webmentions
+```bash
+# Push the workflow file from your machine (needs workflow scope)
+git add .github/workflows/fly-deploy.yml
+git commit -m "Add Fly.io deploy workflow"
+git push origin main
 
-1. Sign up at [webmention.io](https://webmention.io)
-2. Add your domain
-3. Copy the API token
-4. Set `WEBMENTION_IO_TOKEN` as a Fly secret
+# Or deploy manually
+fly deploy
 
-The `<link rel="webmention">` tags are already in the site templates.
+# Verify
+fly logs
+```
+
+### Step 9: Verify It Works
+
+1. Visit `https://admin.phildini.net` — you should see the Django admin login
+2. Log in with the superuser you created
+3. Create a test post with **Is published** checked
+4. Check `https://phildini.net` — the post should appear
+5. Check Bluesky and Mastodon — the post should be syndicated
 
 ## Usage
 
