@@ -14,7 +14,7 @@ DEBUG = os.environ.get("DJANGO_DEBUG", "False").lower() in ("true", "1", "yes")
 
 ALLOWED_HOSTS = os.environ.get(
     "DJANGO_ALLOWED_HOSTS",
-    "admin.phildini.net,localhost,127.0.0.1",
+    "admin.phildini.net,comitatus.fly.dev,localhost,127.0.0.1",
 ).split(",")
 
 INSTALLED_APPS = [
