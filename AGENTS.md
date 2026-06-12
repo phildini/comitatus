@@ -66,6 +66,6 @@ Static site: Django pushes `site/` to `gh-pages` → GitHub Action in `.github/w
 
 ## Gotchas
 
-- SQLite path is `BASE_DIR / "data" / "db.sqlite3"` (not `BASE_DIR / "db.sqlite3"`). The `data/` dir must exist.
+- SQLite path is `BASE_DIR / "data" / "db.sqlite3"` locally, but `/data/db.sqlite3` on Fly (set `DATABASE_PATH` env var). The `data/` dir must exist locally; on Fly the volume at `/data` provides it.
 - Django app imports (`posts.admin`) trigger syndication + build on save. Tests (when added) should mock `_build_site` and syndication.
 - `atproto` and `Mastodon.py` are runtime deps; no syndication happens without credentials.

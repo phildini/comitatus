@@ -222,3 +222,5 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+deploy_key*
+uv.lock

@@ -61,7 +61,10 @@ WSGI_APPLICATION = "comitatus.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "data" / "db.sqlite3",
+        "NAME": os.environ.get(
+            "DATABASE_PATH",
+            str(BASE_DIR / "data" / "db.sqlite3"),
+        ),
     }
 }
 
