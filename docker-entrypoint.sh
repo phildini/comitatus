@@ -6,4 +6,5 @@ db_dir=$(dirname "$db_path")
 mkdir -p "$db_dir"
 
 python manage.py migrate --noinput
+python manage.py collectstatic --noinput --clear
 exec gunicorn comitatus.wsgi --bind 0.0.0.0:8080 --workers 2 --timeout 120
