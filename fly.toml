@@ -4,6 +4,10 @@ console_command = '/app/manage.py shell'
 
 [build]
 
+[mounts]
+  source = "data"
+  destination = "/data"
+
 [env]
   PORT = '8080'
 
