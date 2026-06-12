@@ -84,6 +84,14 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+CSRF_TRUSTED_ORIGINS = os.environ.get(
+    "DJANGO_CSRF_TRUSTED_ORIGINS",
+    "https://comitatus.fly.dev,https://admin.phildini.net",
+).split(",")
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 SITE_DOMAIN = os.environ.get("SITE_DOMAIN", "phildini.net")
