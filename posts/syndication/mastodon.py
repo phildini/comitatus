@@ -1,8 +1,22 @@
 import logging
+import re
 
 from django.conf import settings
 
+from posts.models import HandleCache
+
 logger = logging.getLogger(__name__)
+
+
+def _substitute_mentions(text):
+    def replace(match):
+        handle = match.group(1)
+        cached = HandleCache.objects.filter(handle__iexact=handle).first()
+        if cached and cached.mastodon_acct:
+            return f"@{cached.mastodon_acct}"
+        return match.group(0)
+
+    return re.sub(r"(?<![\w\/])@(\w+)", replace, text)
 
 
 def syndicate_to_mastodon(post):
@@ -23,6 +37,8 @@ def syndicate_to_mastodon(post):
         status = post.body
         if post.image:
             status = f"{post.body}\n\n{post.canonical_url}"
+
+    status = _substitute_mentions(status)
 
     media_ids = []
     if post.image and post.image.path:

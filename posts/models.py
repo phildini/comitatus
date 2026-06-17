@@ -58,9 +58,9 @@ class Post(models.Model):
 
         urls = {}
         try:
-            bsky_url = syndicate_to_bluesky(self)
-            if bsky_url:
-                urls["bluesky"] = bsky_url
+            bsky_uris = syndicate_to_bluesky(self)
+            if bsky_uris:
+                urls["bluesky"] = bsky_uris[0]
         except Exception as e:
             import logging
 
