@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 
-from .models import Post
+from .models import HandleCache, Post
 
 
 @admin.register(Post)
@@ -89,3 +89,31 @@ class PostAdmin(admin.ModelAdmin):
             from django.contrib import messages
 
             messages.error(request, f"Site build failed: {e}")
+
+
+@admin.register(HandleCache)
+class HandleCacheAdmin(admin.ModelAdmin):
+    list_display = [
+        "handle",
+        "display_name",
+        "bluesky_handle",
+        "mastodon_acct",
+        "resolved_at",
+    ]
+    search_fields = ["handle", "display_name"]
+    list_filter = ["resolved_at"]
+    actions = ["resolve_selected"]
+
+    def resolve_selected(self, request, queryset):
+        from posts.syndication.resolve import search_handles, select_handle
+
+        for cached in queryset:
+            results = search_handles(cached.handle)
+            for r in results:
+                if r["platform"] == "bluesky" and not cached.bluesky_did:
+                    select_handle(cached.handle, r)
+                elif r["platform"] == "mastodon" and not cached.mastodon_id:
+                    select_handle(cached.handle, r)
+        self.message_user(request, f"Resolved {queryset.count()} handles.")
+
+    resolve_selected.short_description = "Re-resolve selected handles"
