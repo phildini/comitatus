@@ -72,6 +72,9 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
 ]
 
+LOGIN_URL = "/admin/login/"
+LOGIN_REDIRECT_URL = "/compose/"
+
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_I18N = True
