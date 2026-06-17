@@ -80,3 +80,30 @@ class Post(models.Model):
         if urls:
             self.syndication_urls = urls
             self.save(update_fields=["syndication_urls"])
+
+
+class HandleCache(models.Model):
+    handle = models.CharField(max_length=100, unique=True)
+    display_name = models.CharField(max_length=200, blank=True)
+    avatar_url = models.URLField(max_length=500, blank=True)
+
+    bluesky_did = models.CharField(max_length=200, blank=True)
+    bluesky_handle = models.CharField(max_length=200, blank=True)
+
+    mastodon_acct = models.CharField(max_length=200, blank=True)
+    mastodon_url = models.URLField(max_length=500, blank=True)
+    mastodon_id = models.CharField(max_length=100, blank=True)
+
+    resolved_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name_plural = "Handle cache"
+        ordering = ["handle"]
+
+    def __str__(self):
+        return self.handle
+
+    @property
+    def is_fully_resolved(self):
+        return bool(self.bluesky_did or self.mastodon_id)
