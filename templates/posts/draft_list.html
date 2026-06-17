@@ -1,0 +1,58 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Drafts &middot; comitatus</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <link rel="stylesheet" href="{% static 'css/compose.css' %}">
+</head>
+<body>
+  <header class="container">
+    <nav>
+      <ul>
+        <li><strong>comitatus</strong></li>
+      </ul>
+      <ul>
+        <li><a href="{% url 'compose' %}">New Post</a></li>
+        <li><a href="{% url 'draft_list' %}">Drafts</a></li>
+        <li><a href="{% url 'admin:posts_handlecache_changelist' %}">Handle Cache</a></li>
+        <li><a href="{% url 'admin:posts_post_changelist' %}">All Posts</a></li>
+        <li><a href="{% url 'admin:logout' %}">Logout</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="container">
+    <h1>Drafts</h1>
+
+    {% if drafts %}
+      <table>
+        <thead>
+          <tr>
+            <th>Preview</th>
+            <th>Type</th>
+            <th>Updated</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for draft in drafts %}
+            <tr>
+              <td>{{ draft.body|truncatewords:20 }}</td>
+              <td><span class="platform-badge {{ draft.post_type }}">{{ draft.post_type }}</span></td>
+              <td><small>{{ draft.updated_at|timesince }} ago</small></td>
+              <td><a href="{% url 'compose_edit' pk=draft.pk %}">Edit</a></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <article>
+        No drafts. <a href="{% url 'compose' %}">Write something</a>.
+      </article>
+    {% endif %}
+  </main>
+</body>
+</html>

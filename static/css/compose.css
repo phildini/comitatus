@@ -1,0 +1,153 @@
+.compose-layout {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--pico-spacing);
+}
+
+@media (max-width: 768px) {
+  .compose-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.compose-sidebar {
+  position: sticky;
+  top: var(--pico-spacing);
+}
+
+.hidden {
+  display: none !important;
+}
+
+.char-counter {
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--pico-muted-color);
+}
+
+.counter-bar {
+  height: 4px;
+  background: var(--pico-muted-border-color);
+  border-radius: 2px;
+  margin-top: 0.25rem;
+  overflow: hidden;
+}
+
+.counter-fill {
+  height: 100%;
+  background: var(--pico-primary);
+  border-radius: 2px;
+  transition: width 0.2s ease;
+}
+
+.counter-fill.warn {
+  background: var(--pico-form-element-invalid-active-border-color, #f0a030);
+}
+
+.counter-fill.over {
+  background: var(--pico-del-color, #c0392b);
+}
+
+.button-group {
+  display: flex;
+  gap: var(--pico-spacing);
+  margin-top: var(--pico-spacing);
+}
+
+.suggestion-card {
+  padding: var(--pico-spacing);
+  margin-bottom: 0.25rem;
+  cursor: pointer;
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: var(--pico-border-radius);
+  transition: background 0.15s ease;
+}
+
+.suggestion-card:hover {
+  background: var(--pico-primary-background);
+  color: var(--pico-primary-inverse);
+}
+
+.suggestion-card.cached {
+  border-left: 3px solid var(--pico-primary);
+}
+
+.platform-badge {
+  font-size: 0.7rem;
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  background: var(--pico-muted-border-color);
+}
+
+.platform-badge.bluesky {
+  background: #1DA1F2;
+  color: white;
+}
+
+.platform-badge.mastodon {
+  background: #6364FF;
+  color: white;
+}
+
+.platform-badge.long {
+  background: var(--pico-primary);
+  color: white;
+}
+
+.platform-badge.micro {
+  background: var(--pico-color-grey-500);
+  color: white;
+}
+
+.cached-badge {
+  font-size: 0.7rem;
+  color: var(--pico-primary);
+}
+
+.resolved-tag {
+  margin-bottom: 0.25rem;
+}
+
+.suggestions-hint {
+  font-size: 0.85rem;
+  color: var(--pico-muted-color);
+}
+
+.loading {
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.message {
+  padding: var(--pico-spacing);
+  margin-bottom: var(--pico-spacing);
+  border-radius: var(--pico-border-radius);
+}
+
+.message.success {
+  background: var(--pico-ins-color, #27ae60);
+  color: white;
+}
+
+.message.info {
+  background: var(--pico-primary);
+  color: white;
+}
+
+.message.error {
+  background: var(--pico-del-color, #c0392b);
+  color: white;
+}
+
+.draft-notice {
+  margin-top: var(--pico-spacing);
+}
+
+.error {
+  color: var(--pico-del-color, #c0392b);
+}
+
+.radio-inline {
+  display: inline-block;
+  margin-right: 1rem;
+}

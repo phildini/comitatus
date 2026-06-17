@@ -1,0 +1,267 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Compose &middot; comitatus</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <link rel="stylesheet" href="{% static 'css/compose.css' %}">
+</head>
+<body>
+  <header class="container">
+    <nav>
+      <ul>
+        <li><strong>comitatus</strong></li>
+      </ul>
+      <ul>
+        <li><a href="{% url 'compose' %}">New Post</a></li>
+        <li><a href="{% url 'draft_list' %}">Drafts</a></li>
+        <li><a href="{% url 'admin:posts_handlecache_changelist' %}">Handle Cache</a></li>
+        <li><a href="{% url 'admin:posts_post_changelist' %}">All Posts</a></li>
+        <li><a href="{% url 'admin:logout' %}">Logout</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="container compose-layout">
+    {% if messages %}
+      {% for message in messages %}
+        <article class="message {{ message.tags }}">{{ message }}</article>
+      {% endfor %}
+    {% endif %}
+
+    <div class="compose-editor">
+      <form method="post" enctype="multipart/form-data" id="compose-form">
+        {% csrf_token %}
+
+        <fieldset>
+          <legend>Post type</legend>
+          {% for radio in form.post_type %}
+            <label class="radio-inline">
+              {{ radio.tag }}
+              {{ radio.choice_label }}
+            </label>
+          {% endfor %}
+        </fieldset>
+
+        <div id="title-field" class="{% if form.instance.post_type != 'long' %}hidden{% endif %}">
+          <label for="{{ form.title.id_for_label }}">Title</label>
+          {{ form.title }}
+          {% if form.title.errors %}
+            <small class="error">{{ form.title.errors.0 }}</small>
+          {% endif %}
+        </div>
+
+        <div>
+          {{ form.body }}
+          <div id="char-counter" class="char-counter">
+            <span id="char-count">0</span> / 500 chars
+            <div class="counter-bar">
+              <div id="counter-fill" class="counter-fill" style="width: 0%"></div>
+            </div>
+          </div>
+          {% if form.body.errors %}
+            <small class="error">{{ form.body.errors.0 }}</small>
+          {% endif %}
+        </div>
+
+        <div id="image-field" class="{% if form.instance.post_type == 'long' %}hidden{% endif %}">
+          <label for="{{ form.image.id_for_label }}">Image</label>
+          {{ form.image }}
+          {% if form.instance.image %}
+            <p><small>Current: {{ form.instance.image.name }}</small></p>
+          {% endif %}
+          {% if form.image.errors %}
+            <small class="error">{{ form.image.errors.0 }}</small>
+          {% endif %}
+        </div>
+
+        <div class="button-group">
+          <button type="submit" name="action" value="draft" class="secondary">Save Draft</button>
+          <button type="submit" name="action" value="publish">Publish</button>
+        </div>
+      </form>
+
+      {% if post and not post.is_published %}
+        <article class="draft-notice">
+          <small>Draft saved. <a href="{% url 'compose_edit' pk=post.pk %}">Edit</a></small>
+        </article>
+      {% endif %}
+    </div>
+
+    <div class="compose-sidebar" id="suggestions-pane">
+      <h5>@-tag Suggestions</h5>
+      <p class="suggestions-hint" id="suggestions-hint">
+        Start typing <code>@handle</code> in the editor to search
+      </p>
+      <div id="suggestions-results"></div>
+
+      <hr>
+      <h5>Resolved Tags</h5>
+      <div id="resolved-tags">
+        <p class="suggestions-hint">No resolved tags yet</p>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const form = document.getElementById('compose-form');
+    const bodyInput = document.querySelector('.compose-body');
+    const charCount = document.getElementById('char-count');
+    const counterFill = document.getElementById('counter-fill');
+    const suggestionsResults = document.getElementById('suggestions-results');
+    const suggestionsHint = document.getElementById('suggestions-hint');
+    const resolvedTags = document.getElementById('resolved-tags');
+    const titleField = document.getElementById('title-field');
+    const imageField = document.getElementById('image-field');
+
+    let searchTimeout = null;
+    let lastSearch = '';
+
+    // Character counter
+    bodyInput.addEventListener('input', function() {
+      const len = this.value.length;
+      const pct = Math.min((len / 500) * 100, 100);
+      charCount.textContent = len;
+      counterFill.style.width = pct + '%';
+
+      if (len > 500) {
+        this.value = this.value.substring(0, 500);
+        charCount.textContent = 500;
+      }
+
+      if (len > 300) {
+        counterFill.className = 'counter-fill over';
+      } else if (len > 250) {
+        counterFill.className = 'counter-fill warn';
+      } else {
+        counterFill.className = 'counter-fill';
+      }
+
+      // Trigger @-tag search
+      const text = this.value;
+      const atMatch = text.match(/@(\w{2,})$/);
+      if (atMatch) {
+        const query = atMatch[1];
+        if (query !== lastSearch) {
+          clearTimeout(searchTimeout);
+          searchTimeout = setTimeout(() => searchHandles(query), 500);
+        }
+      } else {
+        clearTimeout(searchTimeout);
+        suggestionsResults.innerHTML = '';
+        suggestionsHint.style.display = 'block';
+      }
+    });
+
+    // Post type toggle
+    document.querySelectorAll('.post-type-toggle input').forEach(function(radio) {
+      radio.addEventListener('change', function() {
+        const isLong = this.value === 'long' && this.checked;
+        titleField.classList.toggle('hidden', !isLong);
+        imageField.classList.toggle('hidden', isLong);
+      });
+    });
+
+    function searchHandles(query) {
+      lastSearch = query;
+      suggestionsHint.style.display = 'none';
+      suggestionsResults.innerHTML = '<article class="loading">Searching...</article>';
+
+      fetch('/compose/search-handles/?q=' + encodeURIComponent(query))
+        .then(r => r.json())
+        .then(data => {
+          if (data.length === 0) {
+            suggestionsResults.innerHTML = '<p class="suggestions-hint">No results found</p>';
+            return;
+          }
+          suggestionsResults.innerHTML = '';
+          data.forEach(function(item) {
+            const card = document.createElement('article');
+            card.className = 'suggestion-card' + (item.is_cached ? ' cached' : '');
+            card.innerHTML =
+              '<div class="suggestion-info">' +
+                '<strong>' + escapeHtml(item.display_name) + '</strong>' +
+                '<br><small>' + escapeHtml(item.handle) + '</small>' +
+                '<br><span class="platform-badge ' + item.platform + '">' + item.platform + '</span>' +
+                (item.is_cached ? ' <span class="cached-badge">cached</span>' : '') +
+              '</div>';
+            card.addEventListener('click', function() {
+              selectHandle(query, item);
+            });
+            suggestionsResults.appendChild(card);
+          });
+        })
+        .catch(function() {
+          suggestionsResults.innerHTML = '<p class="suggestions-hint">Search failed. <a href="#" onclick="searchHandles(\'' + query + '\');return false">Retry</a></p>';
+        });
+    }
+
+    function selectHandle(handle, data) {
+      fetch('/compose/select-handle/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+        body: JSON.stringify(Object.assign({}, data, {handle: handle}))
+      })
+      .then(r => r.json())
+      .then(function() {
+        updateResolvedTags();
+        suggestionsResults.innerHTML = '<p class="suggestions-hint">✓ Resolved ' + escapeHtml(handle) + '</p>';
+        setTimeout(function() {
+          suggestionsResults.innerHTML = '';
+          suggestionsHint.style.display = 'block';
+        }, 1500);
+      });
+    }
+
+    function updateResolvedTags() {
+      const text = bodyInput.value;
+      const handles = text.match(/@(\w+)/g);
+      if (!handles) {
+        resolvedTags.innerHTML = '<p class="suggestions-hint">No resolved tags yet</p>';
+        return;
+      }
+
+      fetch('/compose/search-handles/?q=' + encodeURIComponent(handles.join(' ')))
+        .then(r => r.json())
+        .then(function(data) {
+          const unique = {};
+          data.forEach(function(item) {
+            unique[item.platform + ':' + (item.did || item.id)] = item;
+          });
+          const list = Object.values(unique);
+          if (list.length === 0) {
+            resolvedTags.innerHTML = '<p class="suggestions-hint">No resolved tags yet</p>';
+            return;
+          }
+          resolvedTags.innerHTML = '';
+          list.forEach(function(item) {
+            const tag = document.createElement('p');
+            tag.className = 'resolved-tag';
+            tag.innerHTML = '✓ <strong>' + escapeHtml(item.display_name) + '</strong> <small>' +
+              (item.platform === 'bluesky' ? 'Bluesky' : 'Mastodon') + '</small>';
+            resolvedTags.appendChild(tag);
+          });
+        });
+    }
+
+    function escapeHtml(text) {
+      var div = document.createElement('div');
+      div.appendChild(document.createTextNode(text));
+      return div.innerHTML;
+    }
+
+    function getCookie(name) {
+      var value = '; ' + document.cookie;
+      var parts = value.split('; ' + name + '=');
+      if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+
+    // Load resolved tags on page load
+    if (bodyInput.value) {
+      updateResolvedTags();
+    }
+  </script>
+</body>
+</html>
