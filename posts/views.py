@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib import messages
 
 from posts.forms import PostForm
-from posts.models import Post
+from posts.models import HandleCache, Post
 from posts.syndication.resolve import resolve_mentions, search_handles, select_handle
 
 
@@ -91,3 +91,36 @@ def select_handle_view(request):
 
     select_handle(handle, data)
     return JsonResponse({"status": "ok"})
+
+
+@login_required(login_url="/admin/login/")
+def handle_status_view(request):
+    handle = request.GET.get("handle", "").lower().lstrip("@")
+    if not handle:
+        return JsonResponse({"error": "handle required"}, status=400)
+
+    cached = HandleCache.objects.filter(handle__iexact=handle).first()
+    if not cached:
+        return JsonResponse(
+            {
+                "handle": handle,
+                "display_name": "",
+                "bluesky": {"resolved": False, "handle": ""},
+                "mastodon": {"resolved": False, "acct": ""},
+            }
+        )
+
+    return JsonResponse(
+        {
+            "handle": cached.handle,
+            "display_name": cached.display_name,
+            "bluesky": {
+                "resolved": bool(cached.bluesky_did),
+                "handle": cached.bluesky_handle,
+            },
+            "mastodon": {
+                "resolved": bool(cached.mastodon_id),
+                "acct": cached.mastodon_acct,
+            },
+        }
+    )

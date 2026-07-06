@@ -119,7 +119,6 @@
     let searchTimeout = null;
     let lastSearch = '';
 
-    // Character counter
     bodyInput.addEventListener('input', function() {
       const len = this.value.length;
       const pct = Math.min((len / 500) * 100, 100);
@@ -139,7 +138,6 @@
         counterFill.className = 'counter-fill';
       }
 
-      // Trigger @-tag search
       const text = this.value;
       const atMatch = text.match(/@(\w{2,})$/);
       if (atMatch) {
@@ -155,7 +153,6 @@
       }
     });
 
-    // Post type toggle
     document.querySelectorAll('.post-type-toggle input').forEach(function(radio) {
       radio.addEventListener('change', function() {
         const isLong = this.value === 'long' && this.checked;
@@ -167,31 +164,60 @@
     function searchHandles(query) {
       lastSearch = query;
       suggestionsHint.style.display = 'none';
-      suggestionsResults.innerHTML = '<article class="loading">Searching...</article>';
 
+      fetch('/compose/handle-status/?handle=' + encodeURIComponent(query))
+        .then(r => r.json())
+        .then(function(state) {
+          suggestionsResults.innerHTML = '';
+          renderSearchResults(query, state);
+        });
+
+      suggestionsResults.innerHTML = '<article class="loading">Searching...</article>';
+    }
+
+    function renderSearchResults(query, cachedState) {
       fetch('/compose/search-handles/?q=' + encodeURIComponent(query))
         .then(r => r.json())
-        .then(data => {
-          if (data.length === 0) {
+        .then(function(results) {
+          suggestionsResults.innerHTML = '';
+          if (results.length === 0) {
             suggestionsResults.innerHTML = '<p class="suggestions-hint">No results found</p>';
             return;
           }
-          suggestionsResults.innerHTML = '';
-          data.forEach(function(item) {
+
+          const handle = query.toLowerCase();
+          results.forEach(function(item) {
+            const alreadyResolved =
+              (item.platform === 'bluesky' && cachedState.bluesky.resolved) ||
+              (item.platform === 'mastodon' && cachedState.mastodon.resolved);
+
             const card = document.createElement('article');
-            card.className = 'suggestion-card' + (item.is_cached ? ' cached' : '');
+            card.className = 'suggestion-card' + (alreadyResolved ? ' resolved' : '');
             card.innerHTML =
               '<div class="suggestion-info">' +
                 '<strong>' + escapeHtml(item.display_name) + '</strong>' +
                 '<br><small>' + escapeHtml(item.handle) + '</small>' +
                 '<br><span class="platform-badge ' + item.platform + '">' + item.platform + '</span>' +
-                (item.is_cached ? ' <span class="cached-badge">cached</span>' : '') +
+                (alreadyResolved
+                  ? ' <span class="cached-badge">already resolved ✓</span>'
+                  : ' <span class="click-hint">click to add</span>') +
               '</div>';
-            card.addEventListener('click', function() {
-              selectHandle(query, item);
-            });
+
+            if (!alreadyResolved) {
+              card.addEventListener('click', function() {
+                selectHandle(handle, item);
+              });
+            }
             suggestionsResults.appendChild(card);
           });
+
+          // Show summary of what's resolved vs what's left
+          const bsky = cachedState.bluesky.resolved ? '✓ Bluesky' : '⬜ Bluesky';
+          const mast = cachedState.mastodon.resolved ? '✓ Mastodon' : '⬜ Mastodon';
+          const summary = document.createElement('p');
+          summary.className = 'suggestions-hint';
+          summary.textContent = `For @${handle}: ${bsky} ${mast}`;
+          suggestionsResults.prepend(summary);
         })
         .catch(function() {
           suggestionsResults.innerHTML = '<p class="suggestions-hint">Search failed. <a href="#" onclick="searchHandles(\'' + query + '\');return false">Retry</a></p>';
@@ -207,43 +233,48 @@
       .then(r => r.json())
       .then(function() {
         updateResolvedTags();
-        suggestionsResults.innerHTML = '<p class="suggestions-hint">✓ Resolved ' + escapeHtml(handle) + '</p>';
-        setTimeout(function() {
-          suggestionsResults.innerHTML = '';
-          suggestionsHint.style.display = 'block';
-        }, 1500);
+        searchHandles(handle);
       });
     }
 
     function updateResolvedTags() {
       const text = bodyInput.value;
-      const handles = text.match(/@(\w+)/g);
-      if (!handles) {
+      const matches = text.match(/@(\w+)/g);
+      if (!matches) {
         resolvedTags.innerHTML = '<p class="suggestions-hint">No resolved tags yet</p>';
         return;
       }
 
-      fetch('/compose/search-handles/?q=' + encodeURIComponent(handles.join(' ')))
-        .then(r => r.json())
-        .then(function(data) {
-          const unique = {};
-          data.forEach(function(item) {
-            unique[item.platform + ':' + (item.did || item.id)] = item;
+      const handles = [...new Set(matches.map(function(m) { return m.slice(1).toLowerCase(); }))];
+      resolvedTags.innerHTML = '';
+
+      handles.forEach(function(handle) {
+        fetch('/compose/handle-status/?handle=' + encodeURIComponent(handle))
+          .then(r => r.json())
+          .then(function(state) {
+            const row = document.getElementById('tag-' + handle);
+            if (row) {
+              row.outerHTML = buildTagRow(state);
+            } else {
+              resolvedTags.insertAdjacentHTML('beforeend', buildTagRow(state));
+            }
           });
-          const list = Object.values(unique);
-          if (list.length === 0) {
-            resolvedTags.innerHTML = '<p class="suggestions-hint">No resolved tags yet</p>';
-            return;
-          }
-          resolvedTags.innerHTML = '';
-          list.forEach(function(item) {
-            const tag = document.createElement('p');
-            tag.className = 'resolved-tag';
-            tag.innerHTML = '✓ <strong>' + escapeHtml(item.display_name) + '</strong> <small>' +
-              (item.platform === 'bluesky' ? 'Bluesky' : 'Mastodon') + '</small>';
-            resolvedTags.appendChild(tag);
-          });
-        });
+      });
+    }
+
+    function buildTagRow(state) {
+      var bskyCheck = state.bluesky.resolved
+        ? '<span class="platform-resolved">✓ Bluesky</span>'
+        : '<span class="platform-missing">⬜ Bluesky</span>';
+      var mastCheck = state.mastodon.resolved
+        ? '<span class="platform-resolved">✓ Mastodon</span>'
+        : '<span class="platform-missing">⬜ Mastodon</span>';
+
+      return '<div class="resolved-tag-row" id="tag-' + state.handle + '">' +
+        '<strong>@' + escapeHtml(state.handle) + '</strong>' +
+        (state.display_name ? ' <small>' + escapeHtml(state.display_name) + '</small>' : '') +
+        '<br>' + bskyCheck + ' ' + mastCheck +
+      '</div>';
     }
 
     function escapeHtml(text) {
@@ -258,7 +289,6 @@
       if (parts.length === 2) return parts.pop().split(';').shift();
     }
 
-    // Load resolved tags on page load
     if (bodyInput.value) {
       updateResolvedTags();
     }

@@ -7,5 +7,6 @@ urlpatterns = [
     path("compose/<uuid:pk>/", views.compose, name="compose_edit"),
     path("compose/search-handles/", views.search_handles_view, name="search_handles"),
     path("compose/select-handle/", views.select_handle_view, name="select_handle"),
+    path("compose/handle-status/", views.handle_status_view, name="handle_status"),
     path("drafts/", views.draft_list, name="draft_list"),
 ]
